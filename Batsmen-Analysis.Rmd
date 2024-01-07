@@ -1,0 +1,190 @@
+---
+  title: "Project: Cricket Analysis"
+  author: 
+  output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include = FALSE}
+library(tidyverse)
+library(stringr)
+library(ggplot2)
+
+```
+
+## **1.** ##
+The dataset chosen for project two reflects the most runs by cricket batsmen across all three international formats of all time. To obtain this dataset I used the tool kaggle. The data was already conveniently a csv so I simply used read.csv to read it in. Cleaning up the data was fairly simple as well because there were no NA variables. To make the data tidy I split the span the players played into start year and end year. Obtainment and processing gave me zero problems. 
+```{r}
+#read in most runs dataset
+cricket = read.csv("most_runs_in_cricket.csv")
+#include split of span
+cricket = cricket %>% separate(Span, c("start_year", "end_year"), sep = "-")
+head(cricket, n = 10)
+```
+
+
+## **2.** ##
+Recently the T20 cricket international world cup ended and I found an interest into making my project based on cricket batsmen. I wanted to have a statistical answer to "Who is the greatest cricket batsmen of all time?". To invesigate my question I will be creating new variables about average run rate, centuries, 50s, etc, to find a general conclusion on who the most effective batsman of all time is. 
+
+
+## **3.** ##
+My cleaned data includes a plethora of variables on all the players. My table includes the players overall all time run rank(int), player information(character: name and teams played), start_year(character), end_year(character), total mathces played(int), total runs scored(int), number of 100s scored(int), number of 50s scored(int), number of 4s hit(int), and number of 6s hit(int). There are no NA values in my cleaned dataset. 
+```{r}
+#Subset into my data
+mycrick = cricket[,  c("X", "Player", "start_year", "end_year", "Mat", "Runs", "X100", "X50", "X4s", "X6s")]
+mycrick
+```
+## **4.** ##
+The new variables created from my cleaned data include total years played(int), runs per year(int), and 100s per year(int). There are no missing values in this table. Total years played is derived by subtracting end year and start year by using the created function subtract. Runs per year is derived from the total run count divided by years played. 100s per year is derived from total centuries(X100) divided by years played. 
+```{r}
+#Subtract function to find span of years played
+subtract = function(x,y){
+  span1 = as.numeric(x)
+  span2 = as.numeric(y)
+  span = span1-span2
+  return (span)
+}
+
+mycrick$years_played = subtract(mycrick$end_year, mycrick$start_year)
+
+mycrick$runs_per_year = round(mycrick$Runs/mycrick$years_played, digits = 2)
+mycrick$X100s_per_year = round(mycrick$X100/mycrick$years_played, digits = 2)
+newvariables = mycrick[, c("Player", "years_played", "runs_per_year", "X100s_per_year")]
+newvariables
+```
+## **5.**##
+I created all the functions I used in my code to create univariate and bivariate plots. My first function was a histogram function, my second was a density plot, and my third was a dotplot. For my bivariate plots I created a scatterplot function and a line graph function. 
+```{r}
+#Histogram function
+makehist = function(var, color.want = "blue", color.fill = "lightblue", binw = 30, t, xa, ya){
+  yp = ggplot()+geom_histogram(aes(x = var), color = color.want, fill = color.fill, bins = binw) + labs(title = t, x = xa, y = ya)
+
+
+  print(paste("Median of Distribution: ", median(var)))
+  print(paste("Mean of Distribution ", mean(var)))
+  return (yp)
+ 
+}
+
+#Density Plot function
+makedense = function(var, color.want = "blue",color.fill = "lightblue", t, xa, ya){
+  yp = ggplot()+ geom_density(aes(x = var), color = color.want, fill = color.fill)+labs(title = t, x = xa, y = ya)
+  return(yp)
+}
+
+#Dotplot Function
+makedot = function(var, color.want = "blue", color.fill = "lightblue",binw, t, xa, ya){
+  yp = ggplot()+geom_dotplot(aes(x = var), color = color.want, fill = color.fill, binwidth = binw)+labs(title = t, x = xa, y = ya)
+  return(yp)
+}
+
+#ScatterPlot function
+makescat = function(var1, var2, color.want = "black", t, xa, ya){
+  yp = ggplot()+geom_point(aes(x = var1, y = var2), color = color.want)+labs(title = t, x = xa, y= ya)
+  print(paste("Correlation is:", cor(var1, var2)))
+  return(yp)
+}
+
+#Line graph Function
+makeline = function(var1,var2, t, xa, ya){
+  yp = ggplot()+geom_line(aes(x = var1, y = var2))+labs(title = t, x = xa, y = ya)
+  return(yp)
+}
+
+```
+
+For my first graph I made a histogram of total years played for each batsmen in the dataset. The histogram was symmetrical with a bell shape and a median of 15 years and a mean of 14.99 years. The histogram is symmetrical without very much skew which is why the mean and median are very close to each other. 
+```{r}
+makehist(mycrick$years_played, "blue", "lightblue", 60, "Years Played Distribution", "Years Played", "Count")
+```
+
+My second univariate graph is a density plot of 100s hit per year. This is a smoothed distribution along a numeric axis and shows that most of the players in the chart have around 2 centuries per year(peak is highest concentration of numeric variable.)
+```{r}
+makedense(mycrick$X100s_per_year, "Red","pink", "Centuries Distribution", "100s per year", "Density")
+```
+
+The dot plot for runs per year shows each observation of runs per year for each batsmen. The highest frequency of runs per year is at 700 runs per year. The dotplot also shows a slight bell shape with a slight right skew. 
+```{r}
+makedot(mycrick$runs_per_year, "black", "yellow", 45, "Runs per year Distribution", "Runs per year", "Proportion")
+```
+
+This is a histogram of matches played for each batsmen in the dataset. The histogram is skewed to the right with a bimodal peaks. The median of the distribution is 360.5 matches played, while the mean is 365.43 matches played. Since the histogram is skewed the median is a better indicator of the actual midpoint of the data.  
+```{r}
+makehist(mycrick$Mat, "black", "lightgreen", 60, "Total Matches Distribution", "Matches Played", "Count")
+```
+
+The last plot is another density plot on the number of 6s hit by each batsmen. In the dataset about 90 6s were hit at the highest density(peak). 
+```{r}
+makedense(mycrick$X6s, "black", "orange", "Number of 6s Distribution", "Number of 6s", "Proportion")
+```
+
+## **6.** ## 
+I created three new interesting variables using for loops. In order to discover the total proportion of runs that were boundaries(4s or 6s) I created three new variables. The code is below. 
+```{r}
+for (i in 1:88){
+  mycrick$propboundaries[i] = (cricket$X6s[i]+cricket$X4s[i])/cricket$Runs[i]
+}
+for (i in 1:88){
+  mycrick$propX4[i] = cricket$X4s[i]/cricket$Runs[i]
+}
+
+for (i in 1:88){
+  mycrick$propX6[i] = cricket$X6s[i]/cricket$Runs[i]
+}
+
+
+
+```
+
+The first scatterplot shows total matches played vs total runs scored. Visually there is a positive association between both variables. The correlation of .78 indicates that there is a fairly strong correlation between total matches played and total runs scored. Initutively that makes sense(more games played=more runs scored),
+```{r}
+makescat(mycrick$Mat, mycrick$Runs, "cornflowerblue", 
+"Mathches Played vs Total runs", "Matches played", "Total Runs")
+```
+
+This scatterplot shows the relationship between the proportion of total runs that were 6s and the batsmens strike rate. In cricket the more runs you score per ball the higher the strike rate. The scatterplot shows a positive association and the correlation of .79 indicates that there is a fairly strong relationship between proportion of 6s and strike rate.
+```{r} 
+makescat(mycrick$propX6, cricket$SR, "violet", "Proportion of 4s vs Number of 50s", "Proportion of 4s", "Number of 50s")
+```
+
+This line chart shows the realtionship between proportion of 4s from total runs and number of 100s scored. The line chart shows a zig zag pattern however there is an interesting peak at around .119 proportion of 4s. The batsmen with the most 100s have a proportion of .11 4s in their total run count. You can't conclude that that is a sweet spot, however it is an interesting peak. 
+```{r}
+makeline(mycrick$propX4, mycrick$X100, "Proportion of 4s vs 100s scored", "Proportion of 4s from total runs", "Number of 100s")
+```
+
+Similarly this second line chart shows the proportion of total boundaries(4s and 6s) by total runs and strike rate. This chart also  shows a zig zag inconclusive pattern but there is a very high peak at .138 proportion of 4s. Nothing is conclusive however the peak is a notable point.
+```{r}
+makeline(mycrick$propboundaries, cricket$SR, "Proportion of boundaries vs Strike Rate", "Proportion of boundaries", "Strike Rate")
+```
+
+The last graph is the relationship between proportion of boundaries and number of 50s hit. The plot shows a scattered pattern with no visible associaiton. The correlation of -.11 tells us theres no correlation between proportion of boundaries hit and total number of 50s hit. 
+```{r}
+makescat(mycrick$propboundaries, mycrick$X50, "Red", "Proportion of Boundaries Vs Number of 50s Hit", "Proportion of Boundaris", "Number of 50s")
+```
+
+## **7.** ##
+All requirements are clearly indicated throughout the project
+
+## **8.**##
+My initial dataset had no NA values so I did not have to handle NA values throughout my experience
+
+## **9.** ##
+1. I had a problem creating my for loop variables because when initializing them, the new variable would not be created. I fixed the issue when I figured out that the for loop was not iterating through the whole list just the first value. 
+
+2. I had a problem initializing my histogram function, however it was a simple fix because I kept forgetting to put an xaxis aesthetic input.
+
+
+
+#sources: 
+https://www.kaggle.com/datasets/dheerajmukati/most-runs-in-cricket?select=most_runs_in_cricket.csv
+https://www.google.com/search?q=what+does+a+density+plot+show&oq=what+does+a+density+&aqs=chrome.0.0i512l2j69i57j0i512l7.3287j1j7&sourceid=chrome&ie=UTF-8
+
+
+12. Github Link: https://github.com/vhalaharivi26/Project2
